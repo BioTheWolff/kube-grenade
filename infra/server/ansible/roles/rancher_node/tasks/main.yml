@@ -1,0 +1,42 @@
+- name: Create the k3s server manifests directory
+  ansible.builtin.file:
+    path: /var/lib/rancher/k3s/server/manifests
+    state: directory
+    mode: 0755
+
+- name: Copy the cert-manager Helm chart file
+  ansible.builtin.copy:
+    src: cert-manager-helm-chart.yml
+    dest: /var/lib/rancher/k3s/server/manifests/cert-manager.yaml
+    mode: 0600
+
+- name: Template the Rancher Helm chart file
+  ansible.builtin.template:
+    src: rancher-helm-chart.yml.j2
+    dest: /var/lib/rancher/k3s/server/manifests/rancher.yaml
+    mode: 0600
+
+- name: Check if there is a k3s directory
+  ansible.builtin.stat:
+    path: /etc/rancher/k3s
+  register: k3s_dir
+
+- name: Install k3s
+  ansible.builtin.shell: curl -sfL https://get.k3s.io | sh -s - server --cluster-init --tls-san "{{ inventory_hostname }}"
+  environment:
+    INSTALL_K3S_VERSION: "{{ k3s_version }}"
+  when: k3s_dir.stat.exists == False
+
+- name: Save the kubeconfig file
+  ansible.builtin.fetch:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: "{{ playbook_dir ~ '/generated/kubeconfig' }}"
+    flat: true
+
+- name: Update the kubeconfig server URL
+  ansible.builtin.replace:
+    path: "{{ playbook_dir ~ '/generated/kubeconfig' }}"
+    regexp: '127\.0\.0\.1'
+    replace: "{{ inventory_hostname }}"
+  delegate_to: localhost
+  become: false

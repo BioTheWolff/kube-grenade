@@ -1,0 +1,15 @@
+- name: Common actions
+  hosts: all
+  remote_user: cloud-user
+  become: true
+  gather_facts: true
+  roles:
+    - common
+
+- name: Rancher node
+  hosts: rancher_node
+  remote_user: cloud-user
+  become: true
+  gather_facts: true
+  roles:
+    - rancher_node

@@ -1,0 +1,18 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: openstack-cinder-csi
+  namespace: kube-system
+spec:
+  targetNamespace: kube-system
+  version: 2.31.2
+  chart: openstack-cinder-csi
+  repo: https://kubernetes.github.io/cloud-provider-openstack
+  valuesContent: |-
+    secret:
+      enabled: true
+      name: cloud-config
+
+    storageClass:
+      delete:
+        isDefault: true

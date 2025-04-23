@@ -1,0 +1,10 @@
+- name: Ping the hosts
+  ansible.builtin.ping:
+
+- name: Upgrade all packages
+  ansible.builtin.dnf:
+    name: '*'
+    state: latest
+    update_only: true
+  notify:
+    - Reboot the system
