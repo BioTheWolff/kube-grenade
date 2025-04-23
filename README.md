@@ -16,7 +16,10 @@ TODO
 TODO
 
 ### Kyverno
-TODO
+Simple one-liner installation:
+```sh
+kubectl create -f https://github.com/kyverno/kyverno/releases/download/v1.13.0/install.yaml
+```
 
 ### Runtime classes
 TODO
@@ -26,7 +29,15 @@ TODO
 This section ensures the cluster is properly secured against most attacks.
 
 ### Kyverno's policies
-TODO
+The policies are the following:
+- `pod-probes`: ensures all pods have liveness and readiness probes
+- `resource-limits`: all pods' containers must have resource limits
+- `security-context`: add several security context elements to all pods and containers
+
+Apply the policies:
+```sh
+kubectl apply -Rf kubernetes/kyverno/
+```
 
 ### Network Policies
 TODO

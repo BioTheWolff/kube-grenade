@@ -1,0 +1,36 @@
+# -- Mutation policy
+# Modifies all pods to set several security context elements:
+#   - run as non-root
+#   - disallow privilege escalation
+apiVersion: kyverno.io/v1
+kind: Policy
+metadata:
+  name: add-default-securitycontext
+spec:
+  rules:
+  - name: add-default-pod-securitycontext
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+    mutate:
+      patchStrategicMerge:
+        spec:
+          securityContext:
+            runAsNonRoot: true
+  - name: add-default-container-securitycontext
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+    mutate:
+      foreach:
+      - list: "request.object.spec.containers"
+        patchStrategicMerge:
+          spec:
+            containers:
+            - securityContext:
+                runAsNonRoot: true
+                +(allowPrivilegeEscalation): false
