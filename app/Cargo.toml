@@ -1,0 +1,8 @@
+[workspace]
+
+members = [
+    "words",
+    "aggregator",
+]
+
+resolver = "2"
