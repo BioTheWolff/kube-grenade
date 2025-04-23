@@ -46,7 +46,7 @@ data:
         def coredns_attack(self):
             transaction_id = "".join([random.choice(t) for _ in range(0, 4)])
             dns = transaction_id + DNS
-            self.client.send_bytes(input=)
+            self.client.send_bytes(input=dns)
 
 
     class UdpAttack(User):
