@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aggregator
+  namespace: app-namespace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aggregator
+  template:
+    metadata:
+      labels:
+        app: aggregator
+    spec:
+      serviceAccountName: aggregator
+      containers:
+      - name: aggregator
+        image: ghcr.io/biothewolff/kube-grenade/aggregator:latest
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "0.2"
+        securityContext:
+          privileged: false
+        ports:
+        - containerPort: 8080

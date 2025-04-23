@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: words
+  namespace: app-namespace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: words
+  template:
+    metadata:
+      labels:
+        app: words
+    spec:
+      containers:
+      - name: words
+        image: ghcr.io/biothewolff/kube-grenade/words:latest
+        env:
+          - name: PG_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: postgres-config
+                key: PG_NAME
+          - name: PG_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: postgres-config
+                key: PG_HOST
+          - name: PG_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: postgres-config
+                key: PG_PORT
+          - name: PG_USER
+            valueFrom:
+              configMapKeyRef:
+                name: postgres-config
+                key: PG_USER
+          - name: PG_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: postgres-credentials
+                key: PG_PASSWORD
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "0.2"
+        securityContext:
+          privileged: false
+        ports:
+        - containerPort: 8081
