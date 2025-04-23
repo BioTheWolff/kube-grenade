@@ -41,3 +41,7 @@ kubectl apply -Rf kubernetes/kyverno/
 
 ### Network Policies
 TODO
+
+### Istio/Envoy
+- [`mTLS`](https://istio.io/latest/docs/tasks/security/authentication/mtls-migration/): ensure trafic is encrypted when possible and is always encrypted to the database
+- [`rate limiting`](https://istio.io/latest/docs/tasks/policy-enforcement/rate-limit/): rate limit on the database
