@@ -18,7 +18,10 @@ spec:
       patchStrategicMerge:
         spec:
           securityContext:
-            runAsNonRoot: true
+            +(runAsNonRoot): true
+            +(runAsUser): 1000
+            +(runAsGroup): 3000
+            +(fsGroup): 2000
   - name: add-default-container-securitycontext
     match:
       any:
@@ -32,5 +35,9 @@ spec:
           spec:
             containers:
             - securityContext:
-                runAsNonRoot: true
+                +(runAsNonRoot): true
                 +(allowPrivilegeEscalation): false
+                +(readOnlyRootFilesystem): true
+                +(capabilities):
+                  drop:
+                    - ALL
