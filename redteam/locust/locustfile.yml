@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: locust
+data:
+  locustfile.py: |
+    from locust import TaskSet, task, User, events, exception
+    import socket
+    import time
+
+    ENCODING = 'utf-8'
+
+    DNS = "AA AA 01 00 00 01 00 00 00 00 00 00 07 65 78 61 6d 70 6c 65 03 63 6f 6d 00 00 01 00 01".replace(' ', '')
+
+    class UdpSocketClient:
+        host = None
+        port = None
+        env = None
+        abstract = True
+
+        def __init__(self, host, port, env):
+            self.host = host
+            self.port = port
+            self.env = env
+
+        def __get_data(self, host: str, port: int, input: bytes):
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                s.sendto(input, (host, port))
+
+        def send_bytes(self, input: bytes):
+            start_perf_counter = time.perf_counter()
+            self.__get_data(host=self.host, port=self.port, input=input)
+            self.env.events.request.fire(
+                request_type="udp",
+                name="udp",
+                response_time=(time.perf_counter() - start_perf_counter) * 1000,
+                response_length=0,
+                response=None,
+                context=None,
+                exception=None,
+            )
+
+    class AttacksSet(TaskSet):
+        @task
+        def coredns_attack(self):
+            self.client.send_bytes(input=bytes.fromhex(DNS))
+
+
+    class UdpAttack(User):
+        tasks = [AttacksSet]
+        client = None
+
+        def __init__(self, environment):
+            super(UdpAttack, self).__init__(environment)
+            self.client = UdpSocketClient(environment.host, 53, environment)
