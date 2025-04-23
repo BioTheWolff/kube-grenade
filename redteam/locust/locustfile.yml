@@ -7,10 +7,11 @@ data:
     from locust import TaskSet, task, User, events, exception
     import socket
     import time
+    import random
 
     ENCODING = 'utf-8'
 
-    DNS = "AA AA 01 00 00 01 00 00 00 00 00 00 07 65 78 61 6d 70 6c 65 03 63 6f 6d 00 00 01 00 01".replace(' ', '')
+    DNS = "01 00 00 01 00 00 00 00 00 00 07 65 78 61 6d 70 6c 65 03 63 6f 6d 00 00 01 00 01".replace(' ', '')
 
     class UdpSocketClient:
         host = None
@@ -27,9 +28,9 @@ data:
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
                 s.sendto(input, (host, port))
 
-        def send_bytes(self, input: bytes):
+        def send_bytes(self, input: str):
             start_perf_counter = time.perf_counter()
-            self.__get_data(host=self.host, port=self.port, input=input)
+            self.__get_data(host=self.host, port=self.port, input=bytes.fromhex(input))
             self.env.events.request.fire(
                 request_type="udp",
                 name="udp",
@@ -43,7 +44,9 @@ data:
     class AttacksSet(TaskSet):
         @task
         def coredns_attack(self):
-            self.client.send_bytes(input=bytes.fromhex(DNS))
+            transaction_id = "".join([random.choice(t) for _ in range(0, 4)])
+            dns = transaction_id + DNS
+            self.client.send_bytes(input=)
 
 
     class UdpAttack(User):
