@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+    name: aggregator
+    namespace: app-namespace
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aggregator
+  namespace: app-namespace
+  labels:
+    app: aggregator
+    service: aggregator
+spec:
+  selector:
+    app: aggregator
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
