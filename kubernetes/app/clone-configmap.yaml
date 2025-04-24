@@ -1,0 +1,43 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: sync-secrets
+spec:
+  rules:
+    - name: sync-postgres-credentials
+      match:
+        any:
+          - resources:
+              kinds:
+                - Namespace
+      generate:
+        apiVersion: v1
+        kind: Secret
+        name: postgres-credentials
+        namespace: app-namespace
+        synchronize: true
+        clone:
+          namespace: db-namespace
+          name: postgres-credentials
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: sync-configmaps
+spec:
+  rules:
+    - name: sync-postgres-config
+      match:
+        any:
+          - resources:
+              kinds:
+                - Namespace
+      generate:
+        apiVersion: v1
+        kind: Secret
+        name: postgres-config
+        namespace: app-namespace
+        synchronize: true
+        clone:
+          namespace: db-namespace
+          name: postgres-config
