@@ -42,7 +42,7 @@ resource "rancher2_machine_config_v2" "ctrl_pool" {
 
 resource "rancher2_cluster_v2" "rke2" {
   name                  = "main"
-  kubernetes_version    = "v1.31.4+rke2r1"
+  kubernetes_version    = "v1.32.3+rke2r1"
   enable_network_policy = false
 
   rke_config {
@@ -85,6 +85,21 @@ resource "rancher2_cluster_v2" "rke2" {
 
       control_plane_role = true
       etcd_role          = true
+      worker_role        = false
+
+      machine_config {
+        kind = rancher2_machine_config_v2.ctrl_pool.kind
+        name = rancher2_machine_config_v2.ctrl_pool.name
+      }
+    }
+
+    machine_pools {
+      name                         = "worker-pool"
+      quantity                     = 3
+      cloud_credential_secret_name = rancher2_cloud_credential.openstack.id
+
+      control_plane_role = false
+      etcd_role          = false
       worker_role        = true
 
       machine_config {
