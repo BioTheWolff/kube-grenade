@@ -1,0 +1,11 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  namespace: kube-system
+  name: kyverno
+spec:
+  targetNamespace: kyverno
+  createNamespace: true
+  version: 3.4.0
+  chart: kyverno
+  repo: https://kyverno.github.io/kyverno/
