@@ -1,13 +1,8 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: postgres-config
-  namespace: db-namespace
+  name: postgres-db-init
 data:
-  PG_USER: "postgres"
-  PG_NAME: "words"
-  PG_HOST: "postgres"
-  PG_PORT: "5432"
   tables.sql: |
     CREATE TABLE nouns (
     id SERIAL PRIMARY KEY,

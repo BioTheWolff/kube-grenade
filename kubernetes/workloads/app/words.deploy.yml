@@ -43,10 +43,14 @@ spec:
                 name: postgres-credentials
                 key: PG_PASSWORD
         resources:
+          requests:
+            memory: "128Mi"
+            cpu: "0.2"
           limits:
             memory: "128Mi"
             cpu: "0.2"
         securityContext:
           privileged: false
         ports:
-        - containerPort: 8081
+          - name: http
+            containerPort: 8081
