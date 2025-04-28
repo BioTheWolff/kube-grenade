@@ -24,6 +24,17 @@ kubectl create -f https://github.com/kyverno/kyverno/releases/download/v1.13.0/i
 ### Runtime classes
 TODO
 
+### Whiteapp
+This section details how to install the whiteapp into the cluster, and to setup necessary components in order for the red team to attack.
+
+#### PostgreSQL
+Install postgresql in the database namespace:
+```sh
+kubectl create ns db-namespace
+kubectl apply -n db-namespace -Rf kubernetes/workloads/database/manifests/
+helm install app-db oci://registry-1.docker.io/bitnamicharts/postgresql -f kubernetes/workloads/database/values.helm.yml --namespace db-namespace
+```
+
 
 ## Cluster security
 This section ensures the cluster is properly secured against most attacks.

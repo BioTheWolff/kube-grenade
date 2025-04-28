@@ -1,0 +1,8 @@
+# Helm values for Postgres chart
+
+primary:
+  resourcesPreset: "medium"
+  persistence:
+    enabled: true
+  initdb:
+    scriptsSecret: "postgres-db-init"
