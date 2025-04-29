@@ -55,6 +55,8 @@ This section ensures the cluster is properly secured against most attacks.
 The policies are the following:
 - `pod-probes`: ensures all pods have liveness and readiness probes
 - `resource-limits`: all pods' containers must have resource limits
+- `restrict-container`: restrict the number of containers in a pod
+- `restrict-scale`: restrict the number of replicas in a deployment
 - `security-context`: add several security context elements to all pods and containers
 
 Apply the policies:
