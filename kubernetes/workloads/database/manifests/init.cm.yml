@@ -1,14 +1,9 @@
 apiVersion: v1
-kind: Secret
+kind: ConfigMap
 metadata:
   name: postgres-db-init
-type: Opaque
-stringData:
-  01-app.sql: |
-    CREATE ROLE words WITH LOGIN PASSWORD 'password';
-    CREATE DATABASE app;
-    GRANT CONNECT, CREATE ON DATABASE app TO words;
-
+data:
+  app.sql: |
     \c app
 
     CREATE TABLE nouns (

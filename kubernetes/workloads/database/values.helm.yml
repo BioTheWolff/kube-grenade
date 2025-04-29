@@ -1,8 +1,14 @@
 # Helm values for Postgres chart
 
+auth:
+  enablePostgresUser: false
+  username: "words"
+  password: "password"
+  database: "app"
+
 primary:
   resourcesPreset: "medium"
-  persistence:
-    enabled: true
   initdb:
-    scriptsSecret: "postgres-db-init"
+    scriptsConfigMap: "postgres-db-init"
+    user: "words"
+    password: "password"
