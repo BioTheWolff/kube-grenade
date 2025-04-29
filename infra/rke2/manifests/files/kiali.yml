@@ -119,6 +119,8 @@ data:
         root_namespace: istio-system
       tracing:
         enabled: false
+      prometheus:
+        url: "http://prometheus-operated.monitoring:9090/"
     identity:
       cert_file: ""
       private_key_file: ""
