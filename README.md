@@ -35,6 +35,18 @@ kubectl apply -n db-namespace -Rf kubernetes/workloads/database/manifests/
 helm install app-db oci://registry-1.docker.io/bitnamicharts/postgresql -f kubernetes/workloads/database/values.helm.yml --namespace db-namespace
 ```
 
+#### Utils
+This installs the necessary configmaps so that the app may know how to reach the database:
+```sh
+kubectl create ns app-namespace
+kubectl apply -n app-namespace -Rf kubernetes/workloads/utils
+```
+
+#### Deploy the app itself
+If you want to try out the sample app, you can deploy it yourself:
+```sh
+kubectl apply -n app-namespace -Rf kubernetes/workloads/app
+```
 
 ## Cluster security
 This section ensures the cluster is properly secured against most attacks.

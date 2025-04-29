@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: aggregator
-  namespace: app-namespace
 spec:
   replicas: 1
   selector:
@@ -13,7 +12,6 @@ spec:
       labels:
         app: aggregator
     spec:
-      serviceAccountName: aggregator
       containers:
       - name: aggregator
         image: ghcr.io/biothewolff/kube-grenade/aggregator:latest
