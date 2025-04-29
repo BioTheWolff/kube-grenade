@@ -9,3 +9,40 @@ spec:
   version: 2.0.2
   chart: argocd-apps
   repo: https://argoproj.github.io/argo-helm
+  valuesContent: |-
+    applications:
+      app:
+        namespace: argocd
+        finalizers:
+          - resources-finalizer.argocd.argoproj.io
+        project: app
+        source:
+          repoURL: git@github.com:BioTheWolff/kube-grenade.git
+          path: kubernetes/workloads/app/
+          targetRevision: HEAD
+        destination:
+          namespace: app-namespace
+          name: in-cluster
+        syncPolicy:
+          automated:
+            prune: true
+          syncOptions:
+            - CreateNamespace=true
+    projects:
+      app:
+        description: Project for the sample app
+        sourceRepos:
+          - git@github.com:BioTheWolff/kube-grenade.git
+        destinations:
+          - namespace: app-namespace
+            name: in-cluster
+        clusterResourceBlacklist:
+          - group: '*'
+            kind: '*'
+        namespaceResourceWhitelist:
+          - group: apps
+            kind: Deployment
+          - group: networking.k8s.io
+            kind: Ingress
+          - group: ''
+            kind: Service
