@@ -227,3 +227,5 @@ $RECYCLE.BIN/
 **/generated/*
 !**/generated/.gitkeep
 *-openrc.sh
+
+**/target
