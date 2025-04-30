@@ -19,6 +19,7 @@ TODO
 Simple one-liner installation:
 ```sh
 kubectl create -f https://github.com/kyverno/kyverno/releases/download/v1.13.0/install.yaml
+kubectl apply -Rf kubernetes/kyverno/
 ```
 
 ### Runtime classes
@@ -60,11 +61,6 @@ The policies are the following:
 - `restrict-scale`: restrict the number of replicas in a deployment
 - `security-context`: add several security context elements to all pods and containers
 - `block-large-images`: block images larger than 1Gb
-
-Apply the policies:
-```sh
-kubectl apply -Rf kubernetes/kyverno/
-```
 
 ### Network Policies
 TODO
