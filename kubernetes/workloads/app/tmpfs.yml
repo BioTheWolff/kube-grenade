@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tmpfs-exploder
+  labels:
+    app: tmpfs-exploder
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tmpfs-exploder
+  template:
+    metadata:
+      labels:
+        app: tmpfs-exploder
+    spec:
+      containers:
+      - name: tmpfs-container
+        image: busybox
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "Démarrage du test de surcharge tmpfs..."
+            while true; do
+              # Créer des fichiers pour remplir le tmpfs
+              dd if=/dev/zero of=/memory-test/data bs=1M count=10
+              # Continuer à créer des fichiers jusqu'à ce que le tmpfs soit plein
+              if [ $? -ne 0 ]; then
+                echo "tmpfs plein!"
+                sleep 10
+                rm -rf /memory-test/*
+              fi
+            done
+        resources:
+          limits:
+            memory: "200Mi"
+            cpu: "100m"
+        volumeMounts:
+        - mountPath: /memory-test
+          name: memory-volume
+      volumes:
+      - name: memory-volume
+        emptyDir:
+          medium: Memory
+          sizeLimit: "100Mi"  # Limite de taille du tmpfs
