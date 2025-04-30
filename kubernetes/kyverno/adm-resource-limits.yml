@@ -19,7 +19,6 @@ spec:
                   operator: In
                   values:
                   - "app-namespace"
-                  - "db-namespace"
     validate:
       failureAction: Enforce
       message: "All pods need to define container resource limits."
@@ -32,6 +31,7 @@ spec:
                   cpu: "?*"
                 limits:
                   memory: "?*"
+                  cpu: "?*"
           =(initContainers):
             - resources:
                 requests:
@@ -39,6 +39,7 @@ spec:
                   cpu: "?*"
                 limits:
                   memory: "?*"
+                  cpu: "?*"
           =(ephemeralContainers):
             - resources:
                 requests:
@@ -46,3 +47,4 @@ spec:
                   cpu: "?*"
                 limits:
                   memory: "?*"
+                  cpu: "?*"
