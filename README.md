@@ -55,9 +55,11 @@ This section ensures the cluster is properly secured against most attacks.
 The policies are the following:
 - `pod-probes`: ensures all pods have liveness and readiness probes
 - `resource-limits`: all pods' containers must have resource limits
+- `require-nonroot`: all containers must run as non-root
 - `restrict-container`: restrict the number of containers in a pod
 - `restrict-scale`: restrict the number of replicas in a deployment
 - `security-context`: add several security context elements to all pods and containers
+- `block-large-images`: block images larger than 1Gb
 
 Apply the policies:
 ```sh
