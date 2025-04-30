@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tmpdir-exploder
+  labels:
+    app: tmpdir-exploder
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tmpdir-exploder
+  template:
+    metadata:
+      labels:
+        app: tmpdir-exploder
+    spec:
+      containers:
+      - name: tmpdir-container
+        image: busybox
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "Démarrage du test de surcharge tmpdir..."
+            # Créer des fichiers volumineux dans /tmp
+            mkdir -p /tmp/test-files
+            while true; do
+              for i in $(seq 1 50); do
+                dd if=/dev/urandom of=/tmp/test-files/bigfile_$i bs=1M count=20
+                # Vérifier si on a atteint la limite
+                if [ $? -ne 0 ]; then
+                  echo "Limite atteinte après $i fichiers"
+                  sleep 30
+                  rm -rf /tmp/test-files/*
+                  break
+                fi
+              done
+            done
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
