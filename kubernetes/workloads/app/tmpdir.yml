@@ -25,7 +25,7 @@ spec:
             mkdir -p /tmp/test-files
             while true; do
               for i in $(seq 1 50); do
-                dd if=/dev/urandom of=/tmp/test-files/bigfile_$i bs=1M count=20
+                dd if=/dev/urandom of=/tmp/test-files/bigfile_$i bs=1M count=20000000000
                 # Vérifier si on a atteint la limite
                 if [ $? -ne 0 ]; then
                   echo "Limite atteinte après $i fichiers"
