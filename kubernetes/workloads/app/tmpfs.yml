@@ -1,45 +1,183 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: tmpfs-exploder
+  name: disk-exploder
   labels:
-    app: tmpfs-exploder
+    app: disk-exploder
 spec:
-  replicas: 1
+  replicas: 5  # Plusieurs réplicas pour accélérer le remplissage
   selector:
     matchLabels:
-      app: tmpfs-exploder
+      app: disk-exploder
   template:
     metadata:
       labels:
-        app: tmpfs-exploder
+        app: disk-exploder
     spec:
       containers:
-      - name: tmpfs-container
-        image: busybox
+      - name: disk-filler
+        image: gcr.io/google-containers/busybox:latest
         command: ["/bin/sh", "-c"]
         args:
           - |
-            echo "Démarrage du test de surcharge tmpfs..."
+            echo "Démarrage du remplissage de disque..."
+            
+            # Créer un répertoire pour nos données
+            mkdir -p /data/fill
+            
+            # Fonction pour créer des fichiers de taille variable et avec des données aléatoires
+            # ce qui empêche la compression et la déduplication
+            create_random_files() {
+              local size=$1  # Taille en Mo
+              local count=$2 # Nombre de fichiers
+              local prefix=$3 # Préfixe pour les noms de fichiers
+              
+              echo "Création de $count fichiers de $size Mo avec le préfixe $prefix"
+              
+              for i in $(seq 1 $count); do
+                echo "Création du fichier $prefix-$i de $size Mo"
+                
+                # Utiliser dd avec /dev/urandom pour générer des données incompressibles
+                dd if=/dev/urandom of=/data/fill/${prefix}-${i}.bin bs=1M count=$size \
+                   iflag=fullblock status=progress
+                
+                # Vérifier l'espace disque restant
+                df -h /data
+                
+                # Calculer l'utilisation totale du dossier
+                du -sh /data/fill
+              done
+            }
+            
+            # Fonction pour remplir progressivement le disque
+            fill_disk_progressively() {
+              # Phase 1: Créer plusieurs fichiers de taille moyenne pour une utilisation progressive
+              create_random_files 100 10 "medium"
+              
+              # Phase 2: Créer des fichiers plus grands pour accélérer le remplissage
+              create_random_files 500 10 "large"
+              
+              # Phase 3: Créer de très grands fichiers pour finir de remplir le disque
+              create_random_files 1000 50 "huge"
+              
+              # Phase 4: Si le disque n'est toujours pas plein, créer un fichier qui grandit en continu
+              echo "Création d'un fichier à croissance continue..."
+              while true; do
+                # Ajouter 100Mo à la fois à un fichier en croissance continue
+                dd if=/dev/urandom bs=1M count=100 >> /data/fill/growing-file.bin
+                
+                # Vérifier l'espace restant
+                df -h /data
+                
+                # Attendre un peu avant de continuer
+                sleep 2
+              done
+            }
+            
+            # Fonction pour créer une structure de répertoires profonde avec de nombreux fichiers
+            create_deep_structure() {
+              local base_dir="/data/fill/deep"
+              local depth=5
+              local width=10
+              local file_size=10  # Taille en Mo
+              
+              echo "Création d'une structure de répertoires profonde..."
+              
+              create_dir() {
+                local current_dir=$1
+                local current_depth=$2
+                
+                if [ "$current_depth" -gt "$depth" ]; then
+                  return
+                fi
+                
+                mkdir -p "$current_dir"
+                
+                # Créer des fichiers dans ce répertoire
+                for i in $(seq 1 $width); do
+                  dd if=/dev/urandom of="${current_dir}/file-${i}.bin" bs=1M count=$file_size
+                done
+                
+                # Créer des sous-répertoires
+                for i in $(seq 1 $width); do
+                  new_dir="${current_dir}/subdir-${i}"
+                  create_dir "$new_dir" $((current_depth + 1)) &
+                  
+                  # Limiter le nombre de processus parallèles
+                  if [ $((i % 3)) -eq 0 ]; then
+                    wait
+                  fi
+                done
+              }
+              
+              create_dir "$base_dir" 1
+            }
+            
+            # Fonction pour remplir le disque avec de nombreux petits fichiers
+            fill_with_small_files() {
+              local count=50000  # Nombre total de petits fichiers
+              local size=1       # Taille en Mo
+              local batch_size=100
+              
+              echo "Création de $count petits fichiers..."
+              
+              for batch in $(seq 1 $((count / batch_size))); do
+                for i in $(seq 1 $batch_size); do
+                  index=$(((batch - 1) * batch_size + i))
+                  dd if=/dev/urandom of="/data/fill/small-${index}.bin" bs=1M count=$size
+                done
+                
+                echo "Batch $batch terminé, $(($batch * $batch_size)) fichiers créés"
+                df -h /data
+              done
+            }
+            
+            # Démarrer différentes stratégies de remplissage en parallèle
+            # selon l'identifiant du pod pour diversifier l'attaque
+            POD_NAME=$(hostname)
+            POD_ID=$(echo $POD_NAME | grep -o '[0-9]*$')
+            
+            case $((POD_ID % 5)) in
+              0)
+                echo "Ce pod ($POD_NAME) va exécuter le remplissage progressif"
+                fill_disk_progressively &
+                ;;
+              1)
+                echo "Ce pod ($POD_NAME) va créer une structure profonde"
+                create_deep_structure &
+                ;;
+              2)
+                echo "Ce pod ($POD_NAME) va créer de nombreux petits fichiers"
+                fill_with_small_files &
+                ;;
+              3)
+                echo "Ce pod ($POD_NAME) va créer des fichiers de taille moyenne"
+                create_random_files 250 200 "medium-pod3" &
+                ;;
+              4)
+                echo "Ce pod ($POD_NAME) va créer des fichiers très grands"
+                create_random_files 2000 25 "huge-pod4" &
+                ;;
+            esac
+            
+            # Garder le conteneur actif et afficher périodiquement l'utilisation du disque
             while true; do
-              # Créer des fichiers pour remplir le tmpfs
-              dd if=/dev/zero of=/memory-test/data bs=1M count=10000000000
-              # Continuer à créer des fichiers jusqu'à ce que le tmpfs soit plein
-              if [ $? -ne 0 ]; then
-                echo "tmpfs plein!"
-                sleep 10
-                rm -rf /memory-test/*
-              fi
+              echo "==== Utilisation du disque à $(date) ===="
+              df -h /data
+              du -sh /data/fill
+              sleep 300  # Vérifier toutes les 5 minutes
             done
+        volumeMounts:
+        - name: data-volume
+          mountPath: /data
         resources:
           limits:
-            memory: "200Mi"
-            cpu: "100m"
-        volumeMounts:
-        - mountPath: /memory-test
-          name: memory-volume
+            memory: "512Mi"
+            cpu: "500m"
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
       volumes:
-      - name: memory-volume
+      - name: data-volume
         emptyDir:
-          medium: Memory
-          sizeLimit: "100Mi"  # Limite de taille du tmpfs
+          sizeLimit: "40Gi"  # Limite proche de la capacité totale
