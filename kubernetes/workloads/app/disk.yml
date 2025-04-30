@@ -1,0 +1,353 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: disk-saturation-distributed
+  namespace: app-namespace
+  labels:
+    app: disk-saturation
+spec:
+  replicas: 9  # 3 pods par nœud si vous avez 3 nœuds
+  selector:
+    matchLabels:
+      app: disk-saturation
+  template:
+    metadata:
+      labels:
+        app: disk-saturation
+    spec:
+      # Cette topologySpreadConstraint garantit une distribution maximale
+      # des pods sur tous les nœuds disponibles
+      topologySpreadConstraints:
+      - maxSkew: 0                # Force une distribution parfaitement égale
+        topologyKey: kubernetes.io/hostname  # Répartition basée sur les nœuds
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: disk-saturation
+      affinity:
+        # Anti-affinité pour s'assurer que les pods sont répartis
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - disk-saturation
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - name: log-generator
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          touch /tmp/healthy
+          # Générer des logs massifs
+          while true; do
+            for i in $(seq 1 100); do
+              data=$(head -c 500000 /dev/urandom | base64)
+              echo "ERROR: Large log data for diagnostics: $data" >&2
+            done
+            sleep 0.1
+          done
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+        readinessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+        livenessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+      - name: disk-filler
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          touch /tmp/healthy
+          # Remplir emptyDir (espace disque du nœud)
+          mkdir -p /data
+          while true; do
+            for i in $(seq 1 200); do
+              dd if=/dev/zero of=/data/file-$i.bin bs=1M count=50 2>/dev/null || \
+              echo "Write failed for file-$i.bin"
+              
+              # Si l'écriture échoue, tenter de libérer de l'espace puis réessayer
+              if [ $? -ne 0 ]; then
+                rm -f /data/file-* 2>/dev/null
+                sleep 2
+                dd if=/dev/zero of=/data/file-single.bin bs=1M count=100 2>/dev/null
+              fi
+            done
+            sleep 0.5
+          done
+        volumeMounts:
+        - name: large-volume
+          mountPath: /data
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+        readinessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+        livenessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+      - name: tmp-filler
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          touch /tmp/healthy
+          # Remplir /tmp (généralement autorisé même avec readOnlyRootFilesystem)
+          while true; do
+            for i in $(seq 1 50); do
+              dd if=/dev/zero of=/tmp/bigfile-$i bs=1M count=20 2>/dev/null || \
+              echo "Tmp write failed for bigfile-$i"
+            done
+            
+            # Continuer à générer de petits fichiers si les gros échouent
+            if [ $? -ne 0 ]; then
+              for j in $(seq 1 1000); do
+                dd if=/dev/zero of=/tmp/smallfile-$j bs=1k count=10 2>/dev/null
+              done
+            fi
+            sleep 1
+          done
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+        readinessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+        livenessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+      volumes:
+      - name: large-volume
+        emptyDir:
+          sizeLimit: 30Gi  # Demander beaucoup d'espace
+---
+# Déploiement secondaire avec une stratégie différente au cas où le premier ne fonctionne pas
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: disk-saturation-logs
+  namespace: app-namespace
+  labels:
+    app: log-archiver
+spec:
+  replicas: 3  # Un pod par nœud
+  selector:
+    matchLabels:
+      app: log-archiver
+  template:
+    metadata:
+      labels:
+        app: log-archiver
+    spec:
+      # Stratégie alternative de répartition
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app: log-archiver
+      containers:
+      - name: massive-logger
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          touch /tmp/healthy
+          # Générer d'énormes quantités de logs
+          while true; do
+            for i in $(seq 1 200); do
+              # Générer environ 1MB de données par itération
+              random_data=$(head -c 1000000 /dev/urandom | base64 | tr -d '\n')
+              echo "WARN: Log rotation test with large payload: $random_data" >&2
+            done
+            sleep 0.2
+          done
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+        readinessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+        livenessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+      - name: fragment-filler
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          touch /tmp/healthy
+          # Créer de nombreux petits fichiers pour fragmenter le système de fichiers
+          mkdir -p /tmp/fragments
+          while true; do
+            # Créer 10000 petits fichiers
+            for i in $(seq 1 10000); do
+              echo "data-$i-$(date +%s)" > /tmp/fragments/file-$i.txt 2>/dev/null
+              
+              # Tous les 1000 fichiers, vérifier si on peut continuer
+              if [ $((i % 1000)) -eq 0 ]; then
+                # Si le nombre de fichiers créés est inférieur à 100, il y a probablement un problème d'espace
+                count=$(ls -1 /tmp/fragments/ 2>/dev/null | wc -l)
+                if [ $count -lt 100 ]; then
+                  rm -rf /tmp/fragments/* 2>/dev/null
+                  sleep 5
+                fi
+              fi
+            done
+            
+            # Pause avant de recommencer
+            sleep 1
+            rm -rf /tmp/fragments/* 2>/dev/null
+          done
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+        readinessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+        livenessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+---
+# Troisième déploiement pour encore plus de variété
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: disk-saturation-persistent
+  namespace: app-namespace
+  labels:
+    app: data-processor
+spec:
+  replicas: 3  # Un pod par nœud
+  selector:
+    matchLabels:
+      app: data-processor
+  template:
+    metadata:
+      labels:
+        app: data-processor
+    spec:
+      # Stratégie alternative de répartition
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app: data-processor
+      containers:
+      - name: pvc-filler
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          touch /tmp/healthy
+          # Remplir le PVC
+          while true; do
+            for size in $(seq 100 100 1000); do
+              echo "Creating file of ${size}MB..."
+              dd if=/dev/zero of=/mnt/data/bigdata-$size.bin bs=1M count=$size 2>/dev/null || \
+              echo "Failed to write file of ${size}MB"
+              
+              # Si on a échoué, essayer des fichiers plus petits
+              if [ $? -ne 0 ]; then
+                for j in $(seq 1 20); do
+                  dd if=/dev/zero of=/mnt/data/smalldata-$j.bin bs=1M count=10 2>/dev/null
+                done
+              fi
+              sleep 0.5
+            done
+          done
+        volumeMounts:
+        - name: pvc-storage
+          mountPath: /mnt/data
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+        readinessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+        livenessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+      - name: sparse-file-creator
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          touch /tmp/healthy
+          # Créer des fichiers sparse qui apparaissent comme très grands
+          # mais ne consomment de l'espace que lorsqu'on écrit dedans
+          while true; do
+            for i in $(seq 1 10); do
+              echo "Creating sparse file $i..."
+              # Créer un fichier sparse de 10GB
+              dd if=/dev/zero of=/tmp/sparse-$i.bin bs=1 count=0 seek=10G 2>/dev/null || \
+              echo "Failed to create sparse file $i"
+              
+              # Écrire aléatoirement dans ce fichier pour consommer de l'espace réel
+              for j in $(seq 1 100); do
+                pos=$((RANDOM * RANDOM % 10737418240))  # Position aléatoire dans les 10GB
+                dd if=/dev/zero of=/tmp/sparse-$i.bin bs=1M count=1 seek=$((pos / 1048576)) conv=notrunc 2>/dev/null || \
+                echo "Failed to write at position $pos in file $i"
+              done
+            done
+            
+            # Courte pause
+            sleep 1
+          done
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+        readinessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+        livenessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+      volumes:
+      - name: pvc-storage
+        persistentVolumeClaim:
+          claimName: data-pvc
+---
+# PVC pour le troisième déploiement
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-pvc
+  namespace: app-namespace
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
