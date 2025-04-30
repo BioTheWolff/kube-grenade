@@ -9,3 +9,12 @@ spec:
   version: 3.4.0
   chart: kyverno
   repo: https://kyverno.github.io/kyverno/
+  valuesContent: |-
+    reportsController:
+      rbac:
+        clusterRole:
+          extraResources:
+            - apiGroups:
+                - apps
+              resources:
+                - deployments/scale

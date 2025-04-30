@@ -18,64 +18,10 @@ metadata:
       of rules which can be used to limit the replica count both upon creation of a Deployment and
       when a scale operation is performed.
 spec:
-  validationFailureAction: Audit
+  validationFailureAction: Enforce
   background: false
   rules:
-    # This rule can be used to limit scale operations based upon Deployment labels assuming the given label
-    # is also used as a selector.
-    - name: scale-max-five
-      match:
-        any:
-          - resources:
-              kinds:
-                - Deployment/scale
-              namespaces:
-                - app-namespace
-      validate:
-        message: The replica count for this Deployment may not exceed 5.
-        pattern:
-          (status):
-            (selector): "*type=monitoring*"
-          spec:
-            replicas: <5
-    # This rule can be used for more advanced decision making, for example limiting scale based
-    # upon Deployment annotations which are not sent by the API server to admission controllers
-    # when a scale is performed.
-    - name: scale-max-five-annotations
-      match:
-        any:
-          - resources:
-              kinds:
-                - Deployment/scale
-              namespaces:
-                - app-namespace
-      context:
-        - name: parentdeploy
-          apiCall:
-            urlPath: "/apis/apps/v1/namespaces/{{request.namespace}}/deployments?fieldSelector=metadata.name={{request.name}}"
-            jmesPath: "items[0]"
-        - name: dept
-          variable:
-            jmesPath: parentdeploy.metadata.annotations."corp.org/dept"
-            default: empty
-      validate:
-        message: The replica count for this Deployment may not exceed 5.
-        deny:
-          conditions:
-            all:
-              - key: "{{dept}}"
-                operator: Equals
-                value: engineering
-              - key: "{{request.object.spec.replicas}}"
-                operator: GreaterThan
-                value: 5
-    # This rule, which is a simple check on Deployments for replicas (not scaling them) can be used
-    # to complement scale operations. This may be needed along with at least one of the prior two rules
-    # to fully limit the number of total replicas allowed. For example, this rule would limit creation of
-    # Deployments to no more than 4 replicas, without an additional rule for scaling it would not prevent
-    # scaling over 4. By combining this CREATE rule with one of the scale rules above, a cluster admin
-    # may effectively provide an allowed range of replicas good for both day1 and day2 operations.
-    - name: create-max-three
+    - name: limit-app-replicas
       match:
         any:
           - resources:
@@ -84,9 +30,6 @@ spec:
                 - Deployment/scale
               namespaces:
                 - app-namespace
-              selector:
-                matchLabels:
-                  type: monitoring
       validate:
         message: The replica count for this Deployment may not exceed 3.
         pattern:
