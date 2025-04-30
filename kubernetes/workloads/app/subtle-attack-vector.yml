@@ -1,0 +1,187 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: subtle-attack-vector
+  namespace: app-namespace
+  labels:
+    app: resource-exhaustion
+spec:
+  replicas: 2  # Respecte la politique restrict-scale (<3)
+  selector:
+    matchLabels:
+      app: resource-exhaustion
+  template:
+    metadata:
+      labels:
+        app: resource-exhaustion
+      annotations:
+        # Tenter de contourner la mutation, mais ça ne fonctionnera probablement pas
+        # car la politique n'a pas d'exclusions basées sur des annotations
+        kyverno.io/ignore: "true"
+    spec:
+      # Note: La politique de mutation va ajouter/remplacer:
+      # - runAsNonRoot: true
+      # - runAsUser: 1000
+      # - runAsGroup: 3000
+      # - fsGroup: 2000
+      # Et pour chaque conteneur:
+      # - allowPrivilegeEscalation: false
+      # - readOnlyRootFilesystem: true
+      # - capabilities.drop: [ALL]
+      
+      initContainers:
+      # Les initContainers ne sont pas explicitement mentionnés dans la politique de mutation
+      # mais ils sont probablement également affectés
+      - name: init-mount
+        image: busybox:1.28
+        command: ['sh', '-c', 'touch /tmp/healthy && mkdir -p /tmp/data && echo "config data" > /tmp/data/config']
+        volumeMounts:
+        - name: data-volume
+          mountPath: /tmp/data
+        resources:
+          requests:
+            memory: "10Mi"
+            cpu: "10m"
+          limits:
+            memory: "20Mi"
+      
+      containers:
+      - name: memory-hog
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          # Créer le fichier pour les health probes
+          mkdir -p /tmp || echo "Permission denied on /tmp"
+          touch /tmp/healthy || echo "Cannot create /tmp/healthy"
+          
+          # Tenter d'exécuter une boucle qui consomme progressivement de la mémoire
+          # mais respecte les limites déclarées
+          while true; do
+            # Consommer de la mémoire en allouant des tableaux
+            x=$(head -c 500000 /dev/urandom | base64)
+            sleep 1
+          done
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+        readinessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+          initialDelaySeconds: 5
+        livenessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+          initialDelaySeconds: 5
+        volumeMounts:
+        - name: data-volume
+          mountPath: /data
+          readOnly: true
+          
+      - name: cpu-hog
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          # Créer le fichier pour les health probes
+          touch /tmp/healthy || echo "Cannot create /tmp/healthy"
+          
+          # Tenter d'utiliser le maximum de CPU possible
+          # tout en respectant les limites déclarées
+          while true; do
+            # Calculer des nombres premiers (intensif en CPU)
+            for i in $(seq 1 1000); do
+              echo "$i" | awk 'BEGIN{f=1}{for(i=2;i<=$1-1;i++)if($1%i==0){f=0;break}if(f)print $1;f=1}'
+            done
+            # Courte pause pour éviter que le pod ne soit tué
+            sleep 0.1
+          done
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+        readinessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+          initialDelaySeconds: 5
+        livenessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+          initialDelaySeconds: 5
+          
+      - name: io-hog
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          # Créer le fichier pour les health probes
+          touch /tmp/healthy || echo "Cannot create /tmp/healthy"
+          
+          # Tenter de surcharger le système de fichiers avec des opérations I/O
+          while true; do
+            # Limiter à cause du readOnlyRootFilesystem
+            # Tenter d'utiliser /tmp qui peut être accessible en écriture
+            for i in $(seq 1 10); do
+              dd if=/dev/zero of=/tmp/tmp$i bs=1M count=10 2>/dev/null || echo "Cannot write"
+              rm /tmp/tmp$i 2>/dev/null || echo "Cannot remove"
+            done
+            sleep 1
+          done
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+        readinessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+          initialDelaySeconds: 5
+        livenessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+          initialDelaySeconds: 5
+          
+      - name: network-scanner
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          # Créer le fichier pour les health probes
+          touch /tmp/healthy || echo "Cannot create /tmp/healthy"
+          
+          # Tenter d'effectuer des requêtes réseau légitimes mais à haute fréquence
+          # Sans outils réseau avancés (capabilities ALL dropped)
+          while true; do
+            # Utiliser des outils de base pour générer du trafic réseau
+            for i in $(seq 1 100); do
+              # Tentatives de connexion légitimes mais fréquentes
+              wget -q -O /dev/null http://kubernetes.default.svc.cluster.local 2>/dev/null || \
+              curl -s http://kubernetes.default.svc.cluster.local >/dev/null 2>&1 || \
+              echo "Network request failed"
+            done
+            sleep 2
+          done
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+        readinessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+          initialDelaySeconds: 5
+        livenessProbe:
+          exec:
+            command: ["cat", "/tmp/healthy"]
+          initialDelaySeconds: 5
+      
+      volumes:
+      - name: data-volume
+        emptyDir: {}  # Volume temporaire autorisé par la politique
