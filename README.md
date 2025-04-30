@@ -3,8 +3,7 @@ This project is created under the course "Advanced Orchestration" of Polytech DO
 More description TODO.
 
 ## Whiteapp
-TODO
-
+The Whiteapp is a rust simple web application composed of a frontend, a backend and a database. The frontend contact the backend, which pull 2 words from the database. The backend sends the words to the frontend, which displays them.
 
 ## Installation
 This section defines the resources and how to install them.
@@ -64,7 +63,8 @@ The policies are the following:
 - `block-large-images`: block images larger than 1Gb
 
 ### Network Policies
-TODO
+Turns-out, network policies were not really useful for this project, as the name of the backend app could change in our scenario. However, for the sake of completeness, here are the network policies we would have used:
+- `lock-db`: restrict the traffic to the database to only the backend
 
 ### Istio/Envoy
 - [`mTLS`](https://istio.io/latest/docs/tasks/security/authentication/mtls-migration/): ensure trafic is encrypted when possible and is always encrypted to the database
