@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: disk-filler
-        image: gcr.io/google-containers/busybox:latest
+        image: quay.io/prometheus/busybox
         command: ["/bin/sh", "-c"]
         args:
           - |
