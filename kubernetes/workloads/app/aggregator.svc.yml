@@ -6,9 +6,11 @@ metadata:
     app: aggregator
     service: aggregator
 spec:
+  type: NodePort
   selector:
     app: aggregator
   ports:
     - protocol: TCP
       port: 8080
       targetPort: http
+      nodePort: 30000
