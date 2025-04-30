@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: debug-pod
+spec:
+  serviceAccountName: cluster-admin-sa  # Service account avec droits suffisants
+  hostPID: true                # Partage l'espace PID avec l'hôte
+  hostNetwork: true            # Utilise le réseau de l'hôte
+  containers:
+  - name: debugger
+    image: bitnami/kubectl:latest  # Image avec kubectl préinstallé
+    securityContext:
+      privileged: true         # Mode privilégié pour accès complet au système
+    volumeMounts:
+    - name: kube-config        # Monter les informations d'authentification kubectl
+      mountPath: /root/.kube
+    - name: tmp-dir
+      mountPath: /tmp
+    command:
+    - "/bin/sh"
+    - "-c"
+    - |
+      # Obtenir le nom du nœud sur lequel ce pod s'exécute
+      NODE=$(kubectl get pod debug-pod -o jsonpath='{.spec.nodeName}')
+      
+      # Lancer kubectl debug sur ce nœud
+      kubectl debug node/$NODE -it --image=ubuntu:20.04
+  volumes:
+  - name: kube-config
+    hostPath:
+      path: /etc/kubernetes/admin.conf
+      type: File
+  - name: tmp-dir
+    emptyDir: {}
