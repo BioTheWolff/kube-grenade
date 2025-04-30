@@ -17,14 +17,5 @@ spec:
       repositories:
         grenade:
           type: git
-          url: git@github.com:BioTheWolff/kube-grenade.git
+          url: https://github.com/BioTheWolff/kube-grenade.git
           name: grenade
-          sshPrivateKey: |
-            -----BEGIN OPENSSH PRIVATE KEY-----
-            b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
-            QyNTUxOQAAACD/2kLhNXvlHZAcsvFGGuKqpWppfJMF0cLdMcljsMbiBgAAAKjsTUy17E1M
-            tQAAAAtzc2gtZWQyNTUxOQAAACD/2kLhNXvlHZAcsvFGGuKqpWppfJMF0cLdMcljsMbiBg
-            AAAEDxOZuOW9OtYKkAzaRhVFEFS/TvlvixvKeBiX8rRDa7nP/aQuE1e+UdkByy8UYa4qql
-            aml8kwXRwt0xyWOwxuIGAAAAImt1cnV5aWFAS3VydXlpYXMtTWFjQm9vay1Qcm8ubG9jYW
-            wBAgM=
-            -----END OPENSSH PRIVATE KEY-----

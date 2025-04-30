@@ -17,7 +17,7 @@ spec:
           - resources-finalizer.argocd.argoproj.io
         project: app
         source:
-          repoURL: git@github.com:BioTheWolff/kube-grenade.git
+          repoURL: https://github.com/BioTheWolff/kube-grenade.git
           path: kubernetes/workloads/app/
           targetRevision: HEAD
         destination:
@@ -32,7 +32,7 @@ spec:
       app:
         description: Project for the sample app
         sourceRepos:
-          - git@github.com:BioTheWolff/kube-grenade.git
+          - https://github.com/BioTheWolff/kube-grenade.git
         destinations:
           - namespace: app-namespace
             name: in-cluster
