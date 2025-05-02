@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spam-io
+  namespace: app-namespace
+spec:
+  selector:
+    matchLabels:
+      app: spam-io
+  template:
+    metadata:
+      labels:
+        app: spam-io
+    spec:
+      containers:
+      - name: spam-io
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args: ['i=0; while true; do dd if=/dev/random of="random_$i.bin" bs=1M count=1 status=none; echo "Wrote random_$i.bin"; i=$((i+1)); done']
+        volumeMounts:
+        - name: spam-io
+          mountPath: /tmp
+      volumes:
+      - name: spam-io
+        emptyDir: {}

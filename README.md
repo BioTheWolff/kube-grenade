@@ -153,3 +153,27 @@ Turns-out, network policies were not really useful for this project, as the name
 ### Istio/Envoy
 - [`mTLS`](https://istio.io/latest/docs/tasks/security/authentication/mtls-migration/): ensure trafic is encrypted when possible and is always encrypted to the database
 - [`rate limiting`](https://istio.io/latest/docs/tasks/policy-enforcement/rate-limit/): rate limit on the database
+
+### Red team
+
+Pistes pour faire péter le cluster
+- Créer masse de pods / container au sein d'un pod
+- manger les ressources, vcpu ram
+- tabasser les dns (same and differente addresses)
+- tabasser la db
+- tabasser les services
+- Créer des services pour exposer les pods
+- Vérifier si on a pas accès au autres namespaces (et voir si deployer des trucs sont soumis au limites ?)
+- écrire des fichiers sur le host comme un sac (gonfler le ephemeral storage)
+- voir si on créer des pvc en masse (bourrer le stockage permanent)
+- miner du bitcoin
+- faire un reverse shell ou un truc comme ça genre le port forward
+- https://kubernetes.io/docs/concepts/policy/pid-limiting/ faire des fork bombs
+- voir si on peu augmenter nos privilèges 
+- vérifier les creds de la postgres, les droits de nos identifiants
+- spammer les I/O pour augmenter la latence 
+- maxer le nombre de connexions à la db, ça va empêcher l'app de répondre
+- maxer la bande passant exterieure ?
+- faire chier la CNI avec une communication intensive entre deux pods (mtls rend le cout plus simple ?)
+- pull reaaaaaaally big images from a registry or have a really slow registery (yes) (zipbomb image ?)
+

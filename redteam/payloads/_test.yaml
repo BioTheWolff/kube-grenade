@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-fd
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: test-fd
+  template:
+    metadata:
+      labels:
+        app: test-fd
+    spec:
+      containers:
+      - name: test-fd
+        image: ghcr.io/ghcr-library/busybox@sha256:e06f93f59fe842fb490ba992bae19fdd5a05373547b52f8184650c2509908114
+        command: ["/bin/sh", "-c"]
+        args: ['i=3; while :; do (eval "exec $i<> /dev/null") && echo "Opened fd $i" || echo "Failed fd $i"; i=$((i + 1)); done']
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault

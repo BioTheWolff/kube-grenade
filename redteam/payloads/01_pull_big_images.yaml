@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-big-app-0
+  namespace: app-namespace
+spec:
+  selector:
+    matchLabels:
+      app: my-big-app-0
+  template:
+    metadata:
+      labels:
+        app: my-big-app-0
+    spec:
+      containers:
+      - name: my-big-app-0
+        image: ghcr.io/catthehacker/ubuntu:full-24.04
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-big-app-1
+  namespace: app-namespace
+spec:
+  selector:
+    matchLabels:
+      app: my-big-app-1
+  template:
+    metadata:
+      labels:
+        app: my-big-app-1
+    spec:
+      containers:
+      - name: my-big-app-1
+        image: ghcr.io/catthehacker/ubuntu:full-20.04
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-big-app-1
+  namespace: app-namespace
+spec:
+  selector:
+    matchLabels:
+      app: my-big-app-1
+  template:
+    metadata:
+      labels:
+        app: my-big-app-1
+    spec:
+      containers:
+      - name: my-big-app-1
+        image: ghcr.io/catthehacker/ubuntu:full-20.04
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-big-app-2
+  namespace: app-namespace
+spec:
+  selector:
+    matchLabels:
+      app: my-big-app-2
+  template:
+    metadata:
+      labels:
+        app: my-big-app-2
+    spec:
+      containers:
+      - name: my-big-app-2
+        image: ghcr.io/catthehacker/ubuntu:full-18.04
+
+

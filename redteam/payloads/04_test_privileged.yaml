@@ -1,0 +1,23 @@
+
+# Do fork bombs I guess -> :(){ :|:& };:
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-privileged
+  namespace: app-namespace
+spec:
+  selector:
+    matchLabels:
+      app: test-privileged
+  template:
+    metadata:
+      labels:
+        app: test-privileged
+    spec:
+      containers:
+      - name: test-privileged
+        image: ghcr.io/ghcr-library/busybox:musl
+        command: ["/bin/sh", "-c"]
+        args: ['sleep infinity']
+        securityContext:
+          privileged: true

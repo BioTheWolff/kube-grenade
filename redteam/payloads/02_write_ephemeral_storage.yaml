@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: big-ephemeral
+  namespace: app-namespace
+spec:
+  selector:
+    matchLabels:
+      app: big-ephemeral
+  template:
+    metadata:
+      labels:
+        app: big-ephemeral
+    spec:
+      containers:
+      - name: big-ephemeral
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args: ["dd if=/dev/zero of=/tmp/zero-file bs=1M count=15T && sleep infinity"]
+        volumeMounts:
+        - name: ephemeral-storage
+          mountPath: /tmp
+      volumes:
+      - name: ephemeral-storage
+        emptyDir: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: big-ephemeral-1
+  namespace: app-namespace
+spec:
+  selector:
+    matchLabels:
+      app: big-ephemeral-1
+  template:
+    metadata:
+      labels:
+        app: big-ephemeral-1
+    spec:
+      containers:
+      - name: big-ephemeral-1
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args: ["dd if=/dev/zero of=/tmp/zero-file bs=1M count=15T && sleep infinity"]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: big-ephemeral
+  namespace: app-namespace
+spec:
+  selector:
+    matchLabels:
+      app: big-ephemeral
+  template:
+    metadata:
+      labels:
+        app: big-ephemeral
+    spec:
+      containers:
+      - name: big-ephemeral
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args: ["dd if=/dev/zero of=/tmp/zero-file bs=1M count=15T && sleep infinity"]
+        volumeMounts:
+        - name: ephemeral-storage
+          mountPath: /tmp
+      volumes:
+      - name: ephemeral-storage
+        emptyDir: 
+          medium: "Memory"
